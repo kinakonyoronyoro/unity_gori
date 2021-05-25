@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 public class Player : MonoBehaviour
 {
     //インスペクターで調整する
-    public float speed = 30;
+    public float speed = 10;
 
     public float JumpForce = 1500;
 
