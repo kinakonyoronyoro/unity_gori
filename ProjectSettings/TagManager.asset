@@ -12,6 +12,7 @@ TagManager:
   - Clear02
   - Clear03
   - Gem
+  - Ground
   layers:
   - Default
   - TransparentFX
