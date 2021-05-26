@@ -7,9 +7,19 @@ using UnityEngine.SceneManagement;
 public class Player : MonoBehaviour
 {
     //インスペクターで調整する
-    public float speed = 10;
+    public float speed;         //速度
 
-    public GroundCheck ground;
+    public float jumpSpeed;     //ジャンプ速度
+
+    public float jumpHeight;    //ジャンプする高さ
+
+    public float jumpLimitTime; //ジャンプ制限時間
+
+    public float gravity;       //重力
+
+    public GroundCheck ground;  //着地判定
+
+    public GroundCheck head;    //頭をぶつけた判定
 
     public float JumpForce = 1500;
 
@@ -21,6 +31,14 @@ public class Player : MonoBehaviour
     private Animator anim = null;
 
     private bool isGround = false;
+
+    private bool isHead = false;
+
+    private bool isJump = false;
+
+    private float jumpPos = 0.0f;
+
+    private float jumpTime = 0.0f;
 
     private SpriteRenderer spRenderer;
 
@@ -44,8 +62,10 @@ public class Player : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         spRenderer = GetComponent<SpriteRenderer>();
+
         //SE取得（Soundファイルから）
         Sound.LoadSe("dead", "dead");
+
         //BGM取得
         audioSource = GetComponent<AudioSource>();
 
@@ -54,15 +74,57 @@ public class Player : MonoBehaviour
     }
 
     // Update is called once per frame
+    //FixedUpdate→ゲーム内時間で一定間隔で呼ばれる
     void FixedUpdate()
     {
-        //設置判定を受け取る
+        //着地判定を受け取る
         isGround = ground.IsGround();
-
+        isHead = head.IsGround();
 
         //キー入力されたら行動する
         float horizontalKey = Input.GetAxis("Horizontal");
+        float verticalKey = Input.GetAxis("Vertical");
+
         float xSpeed = 0.0f;
+        float ySpeed = -gravity;
+
+        //ジャンプ処理(地面についているとき）
+        if (isGround)
+        {
+            //かつ、上方向キーが押されているとき
+            if(verticalKey > 0) {
+                ySpeed = jumpSpeed;
+                jumpPos = transform.position.y;//ジャンプした位置を記録する
+                isJump = true;
+                jumpTime = 0.0f;//ジャンプ時間をリセット
+            } 
+            else 
+            {
+                isJump = false;
+            }
+        }
+        else if (isJump)
+        {
+            //上方向キーを押しているか
+            bool pushUpKey = verticalKey > 0;
+
+            //現在の高さが飛べる高さより下か
+            bool canHeight = jumpPos + jumpHeight > transform.position.y;
+
+            //ジャンプ時間が長くなりすぎていないか
+            bool canTime = jumpLimitTime > jumpTime;
+
+            if ( pushUpKey && canHeight && canTime && !isHead)
+            {
+                ySpeed = jumpSpeed;
+                jumpTime += Time.deltaTime;
+            } 
+            else 
+            {
+                isJump = false;
+                jumpTime = 0.0f;
+            }
+        }
 
         //右のキーが押されている場合
         if (horizontalKey > 0)
@@ -84,20 +146,16 @@ public class Player : MonoBehaviour
             anim.SetBool("Walke", false);
             xSpeed = 0.0f;//何も押していないとき速度を0に変更
         }
-        rb2d.velocity = new Vector2(xSpeed, rb2d.velocity.y);
-        
-
-       
+        //velocity→速度を表す変数
+        //物理演算を無視した動きに強い
+        anim.SetBool("isJump", isJump);
+        anim.SetBool("ground", isGround);
+        rb2d.velocity = new Vector2(xSpeed, ySpeed);
+ 
         
     }
 
-    
-
-     
-
-
-
-       
+  
 
     IEnumerator Dead()
     {
