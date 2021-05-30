@@ -37,6 +37,8 @@ public class Player : MonoBehaviour
 
     private CapsuleCollider2D capcol = null;
 
+    private SpriteRenderer sr = null;
+
     private bool isGround = false;
 
     private bool isHead = false;
@@ -48,6 +50,14 @@ public class Player : MonoBehaviour
     private bool isDamege = false;
 
     private bool isOtherJump = false;
+
+    private bool isContinue = false;
+
+    private bool nonDownAnim = false;
+
+    private float continueTime = 0.0f;
+
+    private float blinkTime = 0.0f;
 
     private float jumpPos = 0.0f;
 
@@ -61,6 +71,10 @@ public class Player : MonoBehaviour
 
     private string enemyTag = "Enemy";
 
+    private string damegeMapTag = "Damege";
+
+    private string deadAreaTag = "DeadArea";
+
     AudioSource audioSource;
     #endregion
 
@@ -71,6 +85,7 @@ public class Player : MonoBehaviour
         rb2d = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         capcol = GetComponent<CapsuleCollider2D>();
+        sr = GetComponent<SpriteRenderer>();
 
         //SE取得（Soundファイルから）
         Sound.LoadSe("dead", "dead");
@@ -80,10 +95,48 @@ public class Player : MonoBehaviour
 
     }
 
+    private void Update()
+    {
+        //フラグがオンの時、時間経過でオンとオフの切り替えをする
+        if(isContinue)
+        {
+            //明滅　ついてる時の戻る
+            if (blinkTime > 0.2f)
+            {
+                sr.enabled = true;
+                blinkTime = 0.0f;
+            }
+            //明滅　消えているとき
+            else if(blinkTime > 0.1f)
+            {
+                sr.enabled = false;
+            }
+            //明滅　ついているとき
+            else
+            {
+                sr.enabled = true;
+            }
+            //1秒たったら明滅終わり（演出終了）
+            if (continueTime > 1.0f)
+            {
+                //演出が終わったらリセットする
+                isContinue = false;
+                blinkTime = 0.0f;
+                continueTime = 0.0f;
+                sr.enabled = true;
+            }
+            else
+            {
+                //演出中は演出用の時間を進める
+                blinkTime += Time.deltaTime;
+                continueTime += Time.deltaTime;
+            }
+        }
+    }
 
     void FixedUpdate()
     {
-        if (!isDamege)
+        if (!isDamege && !Gmanager.instance.isGemeOver)
         {
             //着地判定を受け取る
             isGround = ground.IsGround();
@@ -243,6 +296,9 @@ public class Player : MonoBehaviour
 
     }
 
+    /// <summary>
+    /// アニメーションを設定する
+    /// </summary>
     private void SetAnimation()
     {
         anim.SetBool("isJump", isJump || isOtherJump);
@@ -250,47 +306,22 @@ public class Player : MonoBehaviour
         anim.SetBool("Walke", isWalke);
     }
 
-  
 
-    IEnumerator Dead()
-    {
-        anim.SetBool("isDamege", true);
-
-        yield return new WaitForSeconds(0.5f);
-
-
-        //やられた感を出すためにちょっと上に上がる
-      //  rb2d.AddForce(Vector2.up * JumpForce * 5);
-
-     //   rb2d.AddForce(Vector2.up * JumpForce * 5);
-        //ダメージを受けた後下に落ちるようにするため、当たり判定をOFFにする
-        GetComponent<CircleCollider2D>().enabled = false;
-
-        //BGMを停止させる
-        audioSource.Stop();
-
-        //死んだときのSEが鳴る
-        Sound.PlaySe("Dead", 0);
-
-        //ゲームオーバー画面に遷移
-        SceneManager.LoadScene("GameOver");
-
-
-    }
 
 
     //トリガーがオンの時に発動
     //通り抜けたかどうか判定
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        /*
-        if (collision.gameObject.tag == "Enemy")
+       
+        if (collision.tag == deadAreaTag)
         {
-
-         //   isDead = true;
-            StartCoroutine("Dead");
+            ReceiveDamage(false);
         }
-        */
+        else if(collision.tag == damegeMapTag)
+        {
+            ReceiveDamage(true);
+        }
 
         //ゴール判定
         if (collision.gameObject.tag == "Clear")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
@@ -298,21 +329,21 @@ public class Player : MonoBehaviour
             //クリアと同時にBGMストップ
             audioSource.Stop();
             //Stage02に遷移
-            SceneManager.LoadScene("Stage02");
+            SceneManager.LoadScene("Stage2");
         }
 
 
         //ゴール判定02
-        if (collision.gameObject.tag == "Clear02")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
+        if (collision.gameObject.tag == "Clear2")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
         {
             //クリアと同時にBGMストップ
             audioSource.Stop();
             //Stage03に遷移
-            SceneManager.LoadScene("Stage03");
+            SceneManager.LoadScene("Stage3");
         }
 
         //ゴール判定03
-        if (collision.gameObject.tag == "Clear03")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
+        if (collision.gameObject.tag == "Clear3")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
         {
             //クリアと同時にBGMストップ
             audioSource.Stop();
@@ -322,7 +353,7 @@ public class Player : MonoBehaviour
     }
 
 
-    //ダメージ床の判定
+    
     //乗ったかどうか判定
     private void OnCollisionEnter2D(Collision2D collision)
     { 
@@ -336,9 +367,6 @@ public class Player : MonoBehaviour
 
             foreach (ContactPoint2D p in collision.contacts) 
             {
-               
-
-
                 if (p.point.y < judgePos)
                 {
                     //もう一度跳ねる
@@ -361,27 +389,94 @@ public class Player : MonoBehaviour
                 }
                 else
                 {
-                    //Damege
-                    anim.Play("Damege");
-                    isDamege = true;
+                    ReceiveDamage(true);
                     break;//Damege時ループを抜ける
                     
                 }
             }
            
         }
-
-        //当たったタグを見てダメージマップか判定をする
-        if (collision.gameObject.tag == "Damage")
+    }
+    /// <summary>
+    /// コンテニュー待機状態か
+    /// </summary>
+    /// <returns></returns>
+    public bool IsContinueWaiting()
+    {
+        if(Gmanager.instance.isGemeOver)//ゲームオーバーならコンテニューしない
         {
-         //   isDead = true;
-            //コルーチンの呼び出しをする
-            StartCoroutine("Dead");
+            return false;
         }
-
-     
+        else
+        {
+            return IsDownAnimEnd() || nonDownAnim;
+        }
+        
     }
 
+    //ダウンアニメーションが完了しているかどうか
+    //完了ならtrueを返す
+    private bool IsDownAnimEnd()
+    {
+        //やられているか判定
+        if(isDamege && anim != null)
+        {
+            //現在再生しているアニメーションの状況取得
+            AnimatorStateInfo currentState = anim.GetCurrentAnimatorStateInfo(0);
+            if(currentState.IsName("Damege"))
+            {
+                //normalizedTimeの '1'=100%再生が完了している（アニメーションが終わっている）
+                if (currentState.normalizedTime >= 1)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    /// <summary>
+    /// コンテニューする
+    /// </summary>
+    public void ContinuePlayer()
+    {
+        //各フラグをリセットして最初の状態に戻す
+        isDamege = false;
+        anim.Play("Idole");
+        isJump = false;
+        isOtherJump = false;
+        isWalke = false;
+        isContinue = true;
+        nonDownAnim = false;
+    }
+
+    /// <summary>
+    /// やられた処理
+    /// </summary>
+    /// <param name="dounAnim"></param>
+    private void ReceiveDamage(bool downAnim)
+    {
+        if (isDamege)
+        {
+            return;
+        }
+        else
+        {
+            //ダウンアニメーションをするかどうか切り分け
+            if(downAnim)
+            {
+                anim.Play("Damege");
+
+            }
+            else
+            {
+                nonDownAnim = true;
+            }
+            isDamege = true;
+            Gmanager.instance.SubHeartNum();
+        }
+       
+    }
+    
 
 
 }

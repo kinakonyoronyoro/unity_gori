@@ -13,6 +13,7 @@ TagManager:
   - Clear03
   - Gem
   - Ground
+  - DeadArea
   layers:
   - Default
   - TransparentFX
