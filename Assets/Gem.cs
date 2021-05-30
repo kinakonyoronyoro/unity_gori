@@ -31,6 +31,7 @@ public class Gem : MonoBehaviour
     {
         if (collision.gameObject.name == "Player")
         {
+            
 
             //今の場所にVector3.up（上方向）をプラス
             //星が上に上がる
