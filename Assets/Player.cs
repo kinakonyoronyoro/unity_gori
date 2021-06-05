@@ -67,6 +67,8 @@ public class Player : MonoBehaviour
 
     private bool nonDownAnim = false;
 
+    private bool isClearMotion = false;
+
     private float continueTime = 0.0f;
 
     private float blinkTime = 0.0f;
@@ -146,7 +148,7 @@ public class Player : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (!isDamege && !Gmanager.instance.isGemeOver)
+        if (!isDamege && !Gmanager.instance.isGemeOver && !Gmanager.instance.isStageClear)
         {
             //着地判定を受け取る
             isGround = ground.IsGround();
@@ -169,8 +171,14 @@ public class Player : MonoBehaviour
         }
         else
         {
-            //ダメージ受けた場合重力だけが適用する(落下以外は行動不能とする）
-            rb2d.velocity = new Vector2(0, -gravity);
+            //クリアーアニメーションする
+            if(!isClearMotion && Gmanager.instance.isStageClear)
+            {
+             //   anim.Play("clear");
+                isClearMotion = true;
+            }
+                //ダメージ受けた場合重力だけが適用する(落下以外は行動不能とする）
+                rb2d.velocity = new Vector2(0, -gravity);
         }
  
         
@@ -342,25 +350,9 @@ public class Player : MonoBehaviour
             ReceiveDamage(true);
         }
 
-        //ゴール判定
-        if (collision.gameObject.tag == "Clear")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
-        {
-            //クリアと同時にBGMストップ
-            audioSource.Stop();
-            //Stage02に遷移
-            SceneManager.LoadScene("Stage2");
-        }
+       
 
-
-        //ゴール判定02
-        if (collision.gameObject.tag == "Clear2")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
-        {
-            //クリアと同時にBGMストップ
-            audioSource.Stop();
-            //Stage03に遷移
-            SceneManager.LoadScene("Stage3");
-        }
-
+/*
         //ゴール判定03
         if (collision.gameObject.tag == "Clear3")//ゴールのオブジェクトに接触したらクリアシーンへの切り替え
         {
@@ -369,6 +361,7 @@ public class Player : MonoBehaviour
             //クリア画面に遷移
             SceneManager.LoadScene("Clear");
         }
+*/
     }
 
 
@@ -502,7 +495,7 @@ public class Player : MonoBehaviour
     /// <param name="dounAnim"></param>
     private void ReceiveDamage(bool downAnim)
     {
-        if (isDamege)
+        if (isDamege || Gmanager.instance.isStageClear)//クリア中ダメージを受けないように
         {
 
             return;
