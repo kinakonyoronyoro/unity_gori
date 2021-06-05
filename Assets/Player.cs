@@ -27,6 +27,16 @@ public class Player : MonoBehaviour
     [Header("ダッシュの速さ表現")] public AnimationCurve dashCurve;
 
     [Header("ジャンプの速さ表現")] public AnimationCurve JumpCurve;
+
+    [Header("ジャンプするときに再生するSE")] public AudioClip jumpSE;
+
+    [Header("攻撃された時に再生するSE")] public AudioClip DamegeSE;
+
+
+
+    
+
+
     #endregion
 
 
@@ -38,6 +48,8 @@ public class Player : MonoBehaviour
     private CapsuleCollider2D capcol = null;
 
     private SpriteRenderer sr = null;
+
+    private MoveObject moveObj = null;
 
     private bool isGround = false;
 
@@ -75,6 +87,10 @@ public class Player : MonoBehaviour
 
     private string deadAreaTag = "DeadArea";
 
+    private string moveFloorTag = "MoveFloor";
+
+    private string fallFloorTag = "FallFloor";
+
     AudioSource audioSource;
     #endregion
 
@@ -86,12 +102,6 @@ public class Player : MonoBehaviour
         anim = GetComponent<Animator>();
         capcol = GetComponent<CapsuleCollider2D>();
         sr = GetComponent<SpriteRenderer>();
-
-        //SE取得（Soundファイルから）
-        Sound.LoadSe("dead", "dead");
-
-        //BGM取得
-        audioSource = GetComponent<AudioSource>();
 
     }
 
@@ -150,7 +160,12 @@ public class Player : MonoBehaviour
             SetAnimation();
 
             //移動速度を設定
-            rb2d.velocity = new Vector2(xSpeed, ySpeed);
+            Vector2 addVelocity = Vector2.zero;
+            if(moveObj != null)
+            {
+                addVelocity = moveObj.GetVelocity();
+            }
+            rb2d.velocity = new Vector2(xSpeed, ySpeed) + addVelocity;
         }
         else
         {
@@ -198,6 +213,10 @@ public class Player : MonoBehaviour
             //かつ、上方向キーが押されているとき
             if (verticalKey > 0)
             {
+                if (!isJump)
+                {
+                    Gmanager.instance.PlaySE(jumpSE);
+                }
                 ySpeed = jumpSpeed;
                 jumpPos = transform.position.y;//ジャンプした位置を記録する
                 isJump = true;
@@ -356,8 +375,12 @@ public class Player : MonoBehaviour
     
     //乗ったかどうか判定
     private void OnCollisionEnter2D(Collision2D collision)
-    { 
-      if(collision.collider.tag == enemyTag)
+    {
+        bool enemy = (collision.collider.tag == enemyTag);
+        bool moveFloor = (collision.collider.tag == moveFloorTag);
+        bool fallFloor = (collision.collider.tag == fallFloorTag);
+
+      if(enemy || moveFloor || fallFloor)
         {
             //踏みつけ判定になる高さ
             float stepOnHeight = (capcol.size.y * (stepOnRate / 100f));
@@ -369,34 +392,57 @@ public class Player : MonoBehaviour
             {
                 if (p.point.y < judgePos)
                 {
-                    //もう一度跳ねる
-                    ObjectCollision o = collision.gameObject.GetComponent<ObjectCollision>();
-                    if(o != null)
+                    if(enemy || fallFloor)
                     {
-                        otherJumpHeight = o.boundHeight;//踏んずけた物から跳ねる高さを取得する
-                        o.playerStepOn = true;//踏んずけた物に対して踏んづけたことを通知する
-                        jumpPos = transform.position.y;//ジャンプした位置を記録する
-                        isOtherJump = true;
-                        isJump = false;
-                        jumpTime = 0.0f;
-
-                    }
-                    else 
+                        ObjectCollision o = collision.gameObject.GetComponent<ObjectCollision>();
+                        if (o != null)
+                        {
+                            if (enemy)
+                            {
+                                otherJumpHeight = o.boundHeight;//踏んずけた物から跳ねる高さを取得する
+                                o.playerStepOn = true;//踏んずけた物に対して踏んづけたことを通知する
+                                jumpPos = transform.position.y;//ジャンプした位置を記録する
+                                isOtherJump = true;
+                                isJump = false;
+                                jumpTime = 0.0f;
+                            }
+                            else if(fallFloor)
+                            {
+                                o.playerStepOn = true;
+                            }
+                        }
+                        else
+                        {
+                            Debug.Log("ObjectCollisionがついてないよ！");
+                        }
+                    }else if (moveFloor)
                     {
-                        Debug.Log("ObjectCollisionがついてないよ！");
+                        moveObj = collision.gameObject.GetComponent<MoveObject>();
                     }
-
                 }
                 else
                 {
-                    ReceiveDamage(true);
-                    break;//Damege時ループを抜ける
+                    if (enemy)
+                    {
+                        ReceiveDamage(true);
+                        break;//Damege時ループを抜ける
+                    }
                     
                 }
             }
            
         }
     }
+    private void OnCollisionExit2D(Collision2D collision)
+    {
+        if(collision.collider.tag == moveFloorTag)
+        {
+            //動く床から離れた
+            moveObj = null;
+
+        }
+    }
+
     /// <summary>
     /// コンテニュー待機状態か
     /// </summary>
@@ -440,6 +486,7 @@ public class Player : MonoBehaviour
     public void ContinuePlayer()
     {
         //各フラグをリセットして最初の状態に戻す
+       
         isDamege = false;
         anim.Play("Idole");
         isJump = false;
@@ -457,6 +504,7 @@ public class Player : MonoBehaviour
     {
         if (isDamege)
         {
+
             return;
         }
         else
@@ -464,6 +512,7 @@ public class Player : MonoBehaviour
             //ダウンアニメーションをするかどうか切り分け
             if(downAnim)
             {
+                Gmanager.instance.PlaySE(DamegeSE);
                 anim.Play("Damege");
 
             }

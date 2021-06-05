@@ -6,6 +6,8 @@ using DG.Tweening;
 
 public class Gem : MonoBehaviour
 {
+    
+    
 
     private SpriteRenderer spriteRenderer;
 
@@ -32,7 +34,6 @@ public class Gem : MonoBehaviour
         if (collision.gameObject.name == "Player")
         {
             
-
             //今の場所にVector3.up（上方向）をプラス
             //星が上に上がる
             Vector3 pos = transform.localPosition + Vector3.up * 1.5f;
@@ -52,7 +53,6 @@ public class Gem : MonoBehaviour
 
     void DestroyObject()
     {
-
         Destroy(this.gameObject);
     }
 }
