@@ -14,6 +14,9 @@ TagManager:
   - Gem
   - Ground
   - DeadArea
+  - GroundPlatform
+  - MoveFloor
+  - FallFloor
   layers:
   - Default
   - TransparentFX
@@ -62,6 +65,9 @@ TagManager:
     locked: 0
   - name: Gem
     uniqueID: 986655047
+    locked: 0
+  - name: MoveFloor
+    uniqueID: 3463754281
     locked: 0
   - name: Player
     uniqueID: 2070325991

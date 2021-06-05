@@ -158,3 +158,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   myScore: 10
   playerCheck: {fileID: 3782358246041915764}
+  GemSe: {fileID: 8300000, guid: 4a42f67852d3d1f49b56d6ee52b5b686, type: 3}
