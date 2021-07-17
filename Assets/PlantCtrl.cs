@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class PlantCtrl : MonoBehaviour
 {
+    [Header("加算スコア")] public int myScore;
+    [Header("攻撃された時に再生するSE")] public AudioClip Enemy_Damege;
 
     private Animator anim;
 
@@ -50,6 +52,7 @@ public class PlantCtrl : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
+        Gmanager.instance.PlaySE(Enemy_Damege);
         anim.SetTrigger("TrgDead");
         //当たり判定無効
         GetComponent<BoxCollider2D>().enabled = false;
@@ -63,6 +66,13 @@ public class PlantCtrl : MonoBehaviour
         isDead = true;
         //ウェイト入れる
         yield return new WaitForSeconds(1.5f);
+
+        
+        ////スコア加算の処理
+        if (Gmanager.instance != null)
+        {
+            Gmanager.instance.score += myScore;//スコア加算の処理
+        }
         //Plantオブジェクトの消去
         Destroy(gameObject);
     }
