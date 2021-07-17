@@ -28,6 +28,17 @@ public class GameSystem : MonoBehaviour
 		SceneManager.LoadScene("Title");
 	}
 
+	
+
+    private void Update()
+    {
+        if(!goNextScene && fade.IsFadeOutComplete())
+        {
+			SceneManager.LoadScene("Stage1");
+			goNextScene = true;
+		}
+    }
+
 	//　ゲーム終了ボタンを押したら実行する（ゲーム終了）
 	public void EndGame()
 	{
@@ -40,13 +51,4 @@ public class GameSystem : MonoBehaviour
 		Application.Quit();
 #endif
 	}
-
-    private void Update()
-    {
-        if(!goNextScene && fade.IsFadeOutComplete())
-        {
-			SceneManager.LoadScene("Stage1");
-			goNextScene = true;
-		}
-    }
 }
